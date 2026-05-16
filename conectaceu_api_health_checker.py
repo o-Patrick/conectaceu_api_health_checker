@@ -1,24 +1,38 @@
 #!/usr/bin/env python
-"""Health check script - single ping to API health endpoint"""
+"""Health check script - pings multiple API health endpoints"""
 import os
-import sys
+import time
 import requests
+from dotenv import load_dotenv
 
-API_URL = os.getenv("API_URL", "")
+# Load .env from the current directory
+load_dotenv()
 
-def check_health():
+API_URLS = os.getenv("API_URLS", "").split(",")
+API_URLS = [url.strip() for url in API_URLS if url.strip()]
+DELAY_IN_SECONDS = int(os.getenv("DELAY_IN_SECONDS", "60"))
+
+def check_health(url):
     try:
-        response = requests.get(f"{API_URL}/health", timeout=10)
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            print(f"✅ {response.json()}")
+            print(f"✅ {url}: {response.json()}")
             return True
         else:
-            print(f"❌ Status {response.status_code}")
+            print(f"❌ {url}: Status {response.status_code}")
             return False
     except requests.RequestException as e:
-        print(f"❌ {e}")
+        print(f"❌ {url}: {e}")
         return False
 
 if __name__ == "__main__":
-    success = check_health()
-    sys.exit(0 if success else 1)
+    all_healthy = True
+    print(API_URLS)
+    for url in API_URLS:
+        url = url.strip()
+        if not url:
+            continue
+        
+        check_health(url)
+        
+        time.sleep(DELAY_IN_SECONDS)
