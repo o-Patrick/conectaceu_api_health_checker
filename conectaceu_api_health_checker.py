@@ -26,8 +26,6 @@ def check_health(url):
         return False
 
 if __name__ == "__main__":
-    all_healthy = True
-    print(API_URLS)
     for url in API_URLS:
         url = url.strip()
         if not url:
