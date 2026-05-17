@@ -16,27 +16,43 @@ DELAY_IN_SECONDS = int(os.getenv("DELAY_IN_SECONDS", "60"))
 def now():
     return datetime.now()
 
+def tryDeserialize(response):
+    canDeserialize = False
+    deserializedObject = None
+    try:
+        if response.content:
+            canDeserialize = True
+            deserializedObject = response.json()
+    except Exception as e:
+        pass
+    return (canDeserialize, deserializedObject)
+
 def check_health(url):
     try:
         response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            print(f"{now()} | ✅ {url}: {response.json()}")
+        statusCode = response.status_code
+        statusCodeMessage = f'Response status code: {statusCode}'
+        deserialization = tryDeserialize(response)
+        if statusCode == 200:
+            print(f"{now()} | ✅ {statusCodeMessage}. Content: {deserialization[1]}")
             return True
         else:
-            print(f"{now()} | ❌ {url}: Status {response.status_code}")
+            print(f"{now()} | ❌ {statusCodeMessage}. Content: {deserialization[1] if deserialization[0] else '[no content]'}")
             return False
     except requests.RequestException as e:
-        print(f"{now()} | ❌ {url}: {e}")
+        print(f"{now()} | ❌ {e}")
         return False
 
 if __name__ == "__main__":
     print(f'{now()} | Starting validations')
-    for url in API_URLS:
-        url = url.strip()
-        if not url:
-            continue
-        
-        check_health(url)
-        
-        print(f'{now()} | Waiting for {DELAY_IN_SECONDS} seconds')
-        time.sleep(DELAY_IN_SECONDS)
+    while True:
+        for url in API_URLS:
+            url = url.strip()
+            print(f'{now()} | Querying: {url}')
+            if not url:
+                continue
+            
+            check_health(url)
+            
+            print(f'{now()} | Waiting for {DELAY_IN_SECONDS} seconds')
+            time.sleep(DELAY_IN_SECONDS)
